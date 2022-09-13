@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Minimal Websocket Example</title>
+        <style>
+            body {
+                text-align: center;
+            }
+            h1 {
+                font-size: 24vw;
+                margin: 0;
+            }
+            button {
+                font-size: 6vw;
+            }
+        </style>
+    </head>
+    <body>
+        <h1 id="counter">Connecting...</h1>
+        <button id="increment" disabled>INCREMENT!</button>
+        <script type="text/javascript">
+            const counter = document.getElementById("counter").childNodes[0]
+            const increment = document.getElementById("increment")
+            
+            increment.onclick = () => {
+                ws.send("increment")
+            }
+
+            const ws = new WebSocket("ws://" + window.location.host + "/ws")
+            ws.onopen = () => {
+                counter.nodeValue = "Connected."
+                increment.disabled = false
+            }
+
+            ws.onmessage = ({ data }) => {
+                counter.nodeValue = data
+            }
+        </script>
+    </body>
+</html>
