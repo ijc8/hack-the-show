@@ -1,39 +1,119 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Minimal Websocket Example</title>
+        <!-- TODO: Better title. :-) -->
+        <title>Interactive Concert Thing</title>
         <style>
             body {
                 text-align: center;
             }
             h1 {
-                font-size: 24vw;
+                font-size: 8vh;
                 margin: 0;
             }
-            button {
-                font-size: 6vw;
+
+            .slider {
+                margin: 4vh;
+                font-size: 4vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .slider label {
+                margin-right: 1em;
+            }
+
+            .slider button {
+                width: 5vh;
+                height: 5vh;
+                font-size: inherit;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .slider div {
+                background-color: #eeeeff;
+                line-height: 0;
+            }
+
+            input {
+                width: 50vw;
+                height: 5vh;
             }
         </style>
     </head>
     <body>
-        <h1 id="counter">Connecting...</h1>
-        <button id="increment" disabled>INCREMENT!</button>
+        <h1 id="status">Connecting...</h1>
+        <div id="sliders">
+            <template>
+                <div class="slider">
+                    <label>A</label>
+                    <button id="decrement">-</button>
+                    <div><input type="range" min="0" max="10" disabled /></div>
+                    <button id="increment">+</button>
+                </div>
+            </template>
+        </div>
         <script type="text/javascript">
-            const counter = document.getElementById("counter").childNodes[0]
-            const increment = document.getElementById("increment")
-            
-            increment.onclick = () => {
-                ws.send("increment")
+            const status = document.getElementById("status").childNodes[0]
+            // const increment = document.getElementById("increment")
+            const params = {}
+
+            function setup(data) {
+                console.log(data)
+                const sliders = document.getElementById("sliders")
+                const template = document.querySelector("template")
+                for (const [param, value] of Object.entries(data)) {
+                    console.log("hey", param, value)
+                    const clone = template.content.cloneNode(true)
+                    const slider = clone.querySelector("input")
+                    const decrement = clone.querySelector("#decrement")
+                    const increment = clone.querySelector("#increment")
+                    clone.querySelector("label").textContent = param
+                    decrement.onclick = () => change(param, -1)
+                    increment.onclick = () => change(param, +1)
+                    params[param] = { slider, decrement, increment }
+                    update(param, value)
+                    sliders.appendChild(clone)
+                }
+            }
+
+            function change(param, delta) {
+                ws.send(JSON.stringify({ param, delta }))
+            }
+
+            function update(param, value) {
+                const { slider, decrement, increment } = params[param]
+                slider.value = value
+                decrement.disabled = (value === +slider.min)
+                increment.disabled = (value === +slider.max)
             }
 
             const ws = new WebSocket("ws://" + window.location.host + "/ws")
             ws.onopen = () => {
-                counter.nodeValue = "Connected."
-                increment.disabled = false
+                status.nodeValue = "Connected."
             }
 
             ws.onmessage = ({ data }) => {
-                counter.nodeValue = data
+                // First message:
+                setup(JSON.parse(data))
+                // Subsequent messages:
+                ws.onmessage = ({ data }) => {
+                    console.log("TODO")
+                    data = JSON.parse(data)
+                    for (const [param, value] of Object.entries(data)) {
+                        update(param, value)
+                    }
+                }
+            }
+
+            ws.onclose = () => {
+                // TODO: See how mobile browsers deal with sleep/wake.
+                // Might need to check for that, or at least have some logic here to reconnect.
+                status.nodeValue = "Disconnected."
             }
         </script>
     </body>
