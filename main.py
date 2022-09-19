@@ -6,8 +6,11 @@ from sanic import Sanic
 app = Sanic("WebsocketExample")
 
 # TODO: Replace with actual parameters.
-params = list("ABCDEFGH")
-state = {p: 0 for p in params}
+PARAMS = list("ABCDEFGH")
+MIN_VALUE = 0
+MAX_VALUE = 10
+
+state = {p: 0 for p in PARAMS}
 update = asyncio.Event()
 
 @app.websocket("/ws")
@@ -32,7 +35,7 @@ async def websocket(request, ws):
                 # Got a message from the client; update the state.
                 param = message["param"]
                 delta = message["delta"]
-                state[param] += delta
+                state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
                 # Signal to all coroutines that they should send updates to their clients.
                 update.set()
                 update.clear()
