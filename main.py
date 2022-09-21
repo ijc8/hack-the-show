@@ -33,9 +33,10 @@ async def websocket(request, ws):
                 message = json.loads(task.result())
                 # print(f"Got message from {request.ip}: {message}")
                 # Got a message from the client; update the state.
-                param = message["param"]
-                delta = message["delta"]
-                state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
+                for param, delta in message.items():
+                    state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
+                    # Clients update their local state immediately:
+                    client_state[param] += delta
                 # Signal to all coroutines that they should send updates to their clients.
                 update.set()
                 update.clear()
@@ -44,11 +45,14 @@ async def websocket(request, ws):
                 # State updated.
                 # Compute the diff with the client's local state, and send the necessary updates.
                 diff = {k: v for k, v in state.items() if v != client_state[k]}
-                client_state.update(state)
-                await ws.send(json.dumps(diff))
+                # Don't send a message if nothing needs to be updated.  
+                if diff:
+                    client_state.update(state)
+                    await ws.send(json.dumps(diff))
                 updated = asyncio.create_task(update.wait())
 
 app.static("/", "index.html")
+app.static("/test", "test.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)

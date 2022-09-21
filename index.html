@@ -60,15 +60,12 @@
         </div>
         <script type="text/javascript">
             const status = document.getElementById("status").childNodes[0]
-            // const increment = document.getElementById("increment")
             const params = {}
 
             function setup(data) {
-                console.log(data)
                 const sliders = document.getElementById("sliders")
                 const template = document.querySelector("template")
                 for (const [param, value] of Object.entries(data)) {
-                    console.log("hey", param, value)
                     const clone = template.content.cloneNode(true)
                     const slider = clone.querySelector("input")
                     const decrement = clone.querySelector("#decrement")
@@ -87,7 +84,7 @@
                 const value = Math.max(0, Math.min(+params[param].slider.value + delta, 127))
                 delta = value - +params[param].slider.value
                 update(param, value)
-                ws.send(JSON.stringify({ param, delta }))
+                ws.send(JSON.stringify({ [param]: delta }))
             }
 
             function update(param, value) {

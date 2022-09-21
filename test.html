@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Stress-Tester</title>
+        <style>
+            body {
+                text-align: center;
+                font-family: monospace;
+            }
+
+            table {
+                table-layout: fixed;
+                border: 2px solid cyan;
+                border-collapse: collapse;
+                margin: auto;
+                margin-top: 2em;
+            }
+
+            td, th {
+                border: 1px solid;
+                padding: 5px;
+            }
+
+            th {
+                text-align: left;
+            }
+
+            td {
+                text-align: right;
+            }
+
+            pre {
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Stress-Tester</h1>
+        <p>Usage: Specify number of connections and click "Start Test".</p>
+        <p>Spawns specified number of clients within the browser, sending random commands every 100ms.</p>
+        <p>(Try monitoring with another client, preferably on another device, to observe the sliders.)</p>
+        <label>
+            Concurrent connections:
+            <input id="num-connections" type="number" value="10" min="1" />
+        </label>
+        <button id="toggle-test">Start Test</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Sent</th>
+                    <th>Received</th>
+                    <th>State</th>
+                </tr>
+            </thead>
+            <tbody id="connections">
+                <template>
+                    <tr>
+                        <td id="id"></td>
+                        <td id="sent">0</td>
+                        <td id="received">0</td>
+                        <td><pre id="state"></pre></td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+        <script type="text/javascript">
+            const params = {}
+            const connections = []
+            let running = false
+
+            const connectionsEl = document.getElementById("connections")
+            const numConnections = document.getElementById("num-connections")
+            const toggle = document.getElementById("toggle-test")
+            toggle.onclick = () => {
+                let n = +numConnections.value
+                if (running) {
+                    for (const connection of connections) {
+                        connection.ws.close()
+                    }
+                    toggle.textContent = "Start Test"
+                } else {
+                    while (connections.length) {
+                        const connection = connections.pop()
+                        connection.root.remove()
+                    }
+                    for (let i = 0; i < n; i++) {
+                        connections.push(connect(i))
+                    }
+                    toggle.textContent = "Stop Test"
+                }
+                running = !running
+            }
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms))
+            }
+
+            function choice(choices) {
+                return choices[Math.floor(Math.random() * choices.length)]
+            }
+
+            function createClientEl(id) {
+                const template = document.querySelector("template")
+                const root = template.content.cloneNode(true).querySelector("tr")
+                const sent = root.querySelector("#sent")
+                const received = root.querySelector("#received")
+                const state = root.querySelector("#state")
+                root.querySelector("#id").textContent = id
+                connectionsEl.appendChild(root)
+                return { root, sent, received, state }
+            }
+
+            function formatState(state) {
+                let s = ""
+                for (const [key, value] of Object.entries(state)) {
+                    s += `${key}: ${(value + "").padStart(3)} `
+                }
+                return s
+            }
+
+            function connect(id) {
+                const el = createClientEl(id)
+                const ws = new WebSocket("ws://" + window.location.host + "/ws")
+                let localState = null
+
+                ws.onopen = async () => {
+                    while (ws.readyState === ws.OPEN) {
+                        if (localState !== null) {
+                            const parameters = Object.keys(localState)
+                            const message = { [choice(parameters)]: choice([-2, +2]) }
+                            ws.send(JSON.stringify(message))
+                            el.sent.textContent = +el.sent.textContent + 1
+                        }
+                        await sleep(100)
+                    }
+                }
+
+                ws.onmessage = ({ data }) => {
+                    data = JSON.parse(data)
+                    el.received.textContent = +el.received.textContent + 1
+                    if (localState === null) {
+                        // First message.
+                        localState = data
+                    } else {
+                        for (const [param, value] of Object.entries(data)) {
+                            localState[param] = value
+                        }
+                    }
+                    el.state.textContent = formatState(localState)
+                }
+
+                ws.onclose = () => {
+                    // TODO: Show status in table.
+                }
+
+                return { ws, ...el }
+            }
+
+            function setup(data) {
+                console.log(data)
+                const sliders = document.getElementById("sliders")
+                const template = document.querySelector("template")
+                for (const [param, value] of Object.entries(data)) {
+                    console.log("hey", param, value)
+                    const clone = template.content.cloneNode(true)
+                    const slider = clone.querySelector("input")
+                    const decrement = clone.querySelector("#decrement")
+                    const increment = clone.querySelector("#increment")
+                    clone.querySelector("label").textContent = param
+                    decrement.onclick = () => change(param, -2)
+                    increment.onclick = () => change(param, +2)
+                    params[param] = { slider, decrement, increment }
+                    update(param, value)
+                    sliders.appendChild(clone)
+                }
+            }
+
+            function change(param, delta) {
+                // Show change locally (rather than waiting for server update) to give immediate feedback.
+                const value = Math.max(0, Math.min(+params[param].slider.value + delta, 127))
+                delta = value - +params[param].slider.value
+                update(param, value)
+                ws.send(JSON.stringify({ param, delta }))
+            }
+
+            function update(param, value) {
+                console.log("update:", param, value)
+                const { slider, decrement, increment } = params[param]
+                slider.value = value
+                decrement.disabled = (value === +slider.min)
+                increment.disabled = (value === +slider.max)
+            }
+        </script>
+    </body>
+</html>
