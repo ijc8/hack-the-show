@@ -8,7 +8,7 @@ app = Sanic("WebsocketExample")
 # TODO: Replace with actual parameters.
 PARAMS = list("ABCDEFGH")
 MIN_VALUE = 0
-MAX_VALUE = 10
+MAX_VALUE = 127
 
 state = {p: 0 for p in PARAMS}
 update = asyncio.Event()

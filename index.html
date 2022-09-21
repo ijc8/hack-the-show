@@ -53,7 +53,7 @@
                 <div class="slider">
                     <label>A</label>
                     <button id="decrement">-</button>
-                    <div><input type="range" min="0" max="10" disabled /></div>
+                    <div><input type="range" min="0" max="127" disabled /></div>
                     <button id="increment">+</button>
                 </div>
             </template>
@@ -74,8 +74,8 @@
                     const decrement = clone.querySelector("#decrement")
                     const increment = clone.querySelector("#increment")
                     clone.querySelector("label").textContent = param
-                    decrement.onclick = () => change(param, -1)
-                    increment.onclick = () => change(param, +1)
+                    decrement.onclick = () => change(param, -2)
+                    increment.onclick = () => change(param, +2)
                     params[param] = { slider, decrement, increment }
                     update(param, value)
                     sliders.appendChild(clone)
@@ -84,7 +84,9 @@
 
             function change(param, delta) {
                 // Show change locally (rather than waiting for server update) to give immediate feedback.
-                update(param, +params[param].slider.value + delta)
+                const value = Math.max(0, Math.min(+params[param].slider.value + delta, 127))
+                delta = value - +params[param].slider.value
+                update(param, value)
                 ws.send(JSON.stringify({ param, delta }))
             }
 
