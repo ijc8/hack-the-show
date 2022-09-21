@@ -82,10 +82,13 @@
             }
 
             function change(param, delta) {
+                // Show change locally (rather than waiting for server update) to give immediate feedback.
+                update(param, +params[param].slider.value + delta)
                 ws.send(JSON.stringify({ param, delta }))
             }
 
             function update(param, value) {
+                console.log("update:", param, value)
                 const { slider, decrement, increment } = params[param]
                 slider.value = value
                 decrement.disabled = (value === +slider.min)
