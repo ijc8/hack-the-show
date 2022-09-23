@@ -13,6 +13,11 @@
                 background-color: #0d0208;
                 color: #7bff00
             }
+            #banner {
+                text-align: left;
+                margin: auto;
+                width: max-content;
+            }
             h1 {
                 font-size: 8vh;
                 margin: 0;
@@ -40,26 +45,37 @@
                 height: 5vh;
                 font-size: inherit;
                 font-weight: bold;
+                border-radius: 0;
+                border: 0.35vh solid #7bff00;
+                background-color: #0d0208;
+                color: #7bff00;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 touch-action: manipulation;
             }
 
+            .slider button:disabled {
+                border-color: #003b00;
+                color: #003b00;
+            }
+
             .slider div {
-                background-color: #eeeeff;
                 line-height: 0;
             }
 
             input {
                 width: 50vw;
                 height: 5vh;
+                margin: 0;
             }
         </style>
     </head>
     <body>
-        <h1>HACK THE SHOW</h1>
-        <h2 id="status">Connecting...</h2>
+        <div id="banner">
+            <h1>HACK THE SHOW</h1>
+            <h2>&gt; <span id="status">Connecting...</span></h2>
+        </div>
         <div id="sliders">
             <template>
                 <div class="slider">
@@ -71,21 +87,24 @@
             </template>
         </div>
         <script type="text/javascript">
+            const COLORS = [[255, 51, 102], [255, 102, 51], [255, 204, 51], [51, 255, 102], [51, 255, 204], [51, 153, 255], [102, 51, 255], [204, 51, 255]]
             const status = document.getElementById("status").childNodes[0]
             const params = {}
 
             function setup(data) {
                 const sliders = document.getElementById("sliders")
                 const template = document.querySelector("template")
-                for (const [param, value] of Object.entries(data)) {
+                for (const [i, [param, value]] of Object.entries(data).entries()    ) {
                     const clone = template.content.cloneNode(true)
                     const slider = clone.querySelector("input")
+                    const container = slider.parentNode
+                    container.style = `background-color: rgba(${COLORS[i]}, 0.1)`
                     const decrement = clone.querySelector("#decrement")
                     const increment = clone.querySelector("#increment")
                     clone.querySelector("label").textContent = param
                     decrement.onclick = () => change(param, -2)
                     increment.onclick = () => change(param, +2)
-                    params[param] = { slider, decrement, increment }
+                    params[param] = { container, slider, decrement, increment }
                     update(param, value)
                     sliders.appendChild(clone)
                 }
@@ -100,9 +119,10 @@
             }
 
             function update(param, value) {
-                console.log("update:", param, value)
-                const { slider, decrement, increment } = params[param]
+                const { container, slider, decrement, increment } = params[param]
                 slider.value = value
+                const tmp = "ABCDEFGH" // TODO: Just identify parameters by index.
+                container.style = `background-color: rgba(${COLORS[tmp.indexOf(param)]}, ${0.1 + 0.9*value/127})`
                 decrement.disabled = (value === +slider.min)
                 increment.disabled = (value === +slider.max)
             }
@@ -117,7 +137,6 @@
                 setup(JSON.parse(data))
                 // Subsequent messages:
                 ws.onmessage = ({ data }) => {
-                    console.log("TODO")
                     data = JSON.parse(data)
                     for (const [param, value] of Object.entries(data)) {
                         update(param, value)
