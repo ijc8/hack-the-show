@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <!-- TODO: Better title. :-) -->
-        <title>Interactive Concert Thing</title>
+        <title>HACK THE SHOW</title>
+        <!-- TODO: Maybe host locally. -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet"> 
         <style>
             body {
                 text-align: center;
+                font-family: 'VT323', monospace;
+                background-color: #0d0208;
+                color: #7bff00
             }
             h1 {
                 font-size: 8vh;
+                margin: 0;
+            }
+
+            h2 {
+                font-size: 3vh;
                 margin: 0;
             }
 
@@ -47,7 +58,8 @@
         </style>
     </head>
     <body>
-        <h1 id="status">Connecting...</h1>
+        <h1>HACK THE SHOW</h1>
+        <h2 id="status">Connecting...</h2>
         <div id="sliders">
             <template>
                 <div class="slider">
