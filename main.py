@@ -1,9 +1,11 @@
 import asyncio
 import json
 
+import mido
 from sanic import Sanic
 
 app = Sanic("WebsocketExample")
+output = mido.open_output("HackTheShow", virtual=True)
 
 # TODO: Replace with actual parameters.
 PARAMS = list("ABCDEFGH")
@@ -35,6 +37,7 @@ async def websocket(request, ws):
                 # Got a message from the client; update the state.
                 for param, delta in message.items():
                     state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
+                    output.send(mido.Message(type='control_change', channel=0, control=PARAMS.index(param), value=state[param]))
                     # Clients update their local state immediately:
                     client_state[param] += delta
                 # Signal to all coroutines that they should send updates to their clients.
