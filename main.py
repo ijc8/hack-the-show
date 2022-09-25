@@ -1,11 +1,21 @@
 import asyncio
 import json
+import threading
 
 import mido
 from sanic import Sanic
 
 app = Sanic("WebsocketExample")
+input = mido.open_input("HackTheShow", virtual=True)
 output = mido.open_output("HackTheShow", virtual=True)
+
+mode = 0
+
+def process_midi():
+    for message in input:
+        if message.is_cc() and 1 <= message.control <= 3:
+            mode = message.control - 1
+            print("Mode change:", mode)
 
 # TODO: Replace with actual parameters.
 PARAMS = list("ABCDEFGH")
@@ -37,7 +47,8 @@ async def websocket(request, ws):
                 # Got a message from the client; update the state.
                 for param, delta in message.items():
                     state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
-                    output.send(mido.Message(type='control_change', channel=0, control=PARAMS.index(param), value=state[param]))
+                    # TODO: Use the index directly, rather than the parameter name.
+                    output.send(mido.Message(type='control_change', channel=11 + mode, control=PARAMS.index(param) + 1, value=state[param]))
                     # Clients update their local state immediately:
                     client_state[param] += delta
                 # Signal to all coroutines that they should send updates to their clients.
@@ -58,4 +69,6 @@ app.static("/", "index.html")
 app.static("/test", "test.html")
 
 if __name__ == "__main__":
+    t = threading.Thread(target=process_midi, daemon=True)
+    t.start()
     app.run(host="0.0.0.0", port=8000)

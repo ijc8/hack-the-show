@@ -1,10 +1,4 @@
-# minimal-websocket-example
-
-Minimal example showing how to share some state between many clients with WebSockets.
-
-This demonstrates the minimal parts needed for this kind of thing:
-- A client (HTML + JavaScript)
-- A server (in this case, Python, but there are lots of options)
+# interactive-concert
 
 Setup:
 ```bash
@@ -18,4 +12,10 @@ Execution:
 python main.py
 ```
 
-Then go to http://0.0.0.0:8000 and click the button. Try opening multiple browsers, or connecting from another device.
+Go to http://0.0.0.0:8000 to use the client. Go to http://0.0.0.0:8000/test for basic stress-testing.
+
+The server creates two virtual MIDI devices: an input and an output named "HackTheShow".
+
+Whenever anyone changes a slider, the server sends a CC message to the output on channel 11-13 (depending on the mode) for control 1-8 (depending on the slider) with the new slider value.
+
+When the server receives a CC message for control 1-3, it changes the mode accordingly.
