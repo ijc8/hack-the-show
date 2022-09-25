@@ -72,12 +72,22 @@
             .parameter .bar {
                 height: 100%;
             }
+
+            .blink {
+                animation: blinker 1.2s step-start infinite;
+            }
+
+            @keyframes blinker {
+                50% {
+                    opacity: 0;
+                }
+            }
         </style>
     </head>
     <body>
         <div id="banner">
             <h1>HACK THE SHOW</h1>
-            <h2>&gt; <span id="status">Connecting...</span></h2>
+            <h2>&gt; <span id="status">Connecting...</span><span class="blink">_</span></h2>
         </div>
         <div id="sliders">
             <template>
@@ -97,23 +107,6 @@
             const status = document.getElementById("status").childNodes[0]
             const params = []
 
-            function setup(data) {
-                const sliders = document.getElementById("sliders")
-                const template = document.querySelector("template")
-                for (const [param, [name, value]] of data.entries()) {
-                    const clone = template.content.cloneNode(true)
-                    const container = clone.querySelector(".bar")
-                    const decrement = clone.querySelector(".decrement")
-                    const increment = clone.querySelector(".increment")
-                    clone.querySelector("label").textContent = param
-                    decrement.onclick = () => change(param, -2)
-                    increment.onclick = () => change(param, +2)
-                    params.push({ container, value: 0, decrement, increment })
-                    update(param, value)
-                    sliders.appendChild(clone)
-                }
-            }
-
             function change(index, delta) {
                 // Show change locally (rather than waiting for server update) to give immediate feedback.
                 const value = Math.max(0, Math.min(params[index].value + delta, MAX))
@@ -125,33 +118,54 @@
             function update(index, value) {
                 const param = params[index]
                 param.value = value
-                param.container.style.cssText = `background-color: rgba(${COLORS[index]}, ${0.15 + 0.85*value/MAX}); width: ${100 * value/MAX}%`
+                param.bar.style.cssText = `background-color: rgba(${COLORS[index]}, ${0.15 + 0.85*value/MAX}); width: ${100 * value/MAX}%`
                 param.decrement.disabled = (value === 0)
                 param.increment.disabled = (value === MAX)
             }
 
-            const ws = new WebSocket("ws://" + window.location.host + "/ws")
-            ws.onopen = () => {
-                status.nodeValue = "Connected."
-            }
+            let ws
+            function connect() {
+                ws = new WebSocket("ws://" + window.location.host + "/ws")
 
-            ws.onmessage = ({ data }) => {
-                // First message:
-                setup(JSON.parse(data))
-                // Subsequent messages:
+                ws.onopen = () => {
+                    status.nodeValue = "Connected."
+                }
+
                 ws.onmessage = ({ data }) => {
-                    data = JSON.parse(data)
-                    for (const [param, value] of data) {
-                        update(param, value)
+                    // First message:
+                    for (const [index, [name, value]] of JSON.parse(data).entries()) {
+                        update(index, value)
                     }
+                    // Subsequent messages:
+                    ws.onmessage = ({ data }) => {
+                        data = JSON.parse(data)
+                        for (const [index, value] of data) {
+                            update(index, value)
+                        }
+                    }
+                }
+
+                ws.onclose = () => {
+                    status.nodeValue = "Reconnecting."
+                    connect()
                 }
             }
 
-            ws.onclose = () => {
-                // TODO: See how mobile browsers deal with sleep/wake.
-                // Might need to check for that, or at least have some logic here to reconnect.
-                status.nodeValue = "Disconnected."
+            const sliders = document.getElementById("sliders")
+            const template = document.querySelector("template")
+            for (let index = 0; index < 8; index++) {
+                const clone = template.content.cloneNode(true)
+                const bar = clone.querySelector(".bar")
+                const decrement = clone.querySelector(".decrement")
+                const increment = clone.querySelector(".increment")
+                clone.querySelector("label").textContent = index
+                decrement.onclick = () => change(index, -2)
+                increment.onclick = () => change(index, +2)
+                params.push({ bar, value: 0, decrement, increment })
+                sliders.appendChild(clone)
             }
+
+            connect()
         </script>
     </body>
 </html>
