@@ -28,7 +28,7 @@
                 margin: 0;
             }
 
-            .slider {
+            .parameter {
                 margin: 4vh;
                 font-size: 4vh;
                 display: flex;
@@ -36,11 +36,11 @@
                 justify-content: center;
             }
 
-            .slider label {
+            .parameter label {
                 margin-right: 1em;
             }
 
-            .slider button {
+            .parameter button {
                 width: 5vh;
                 height: 5vh;
                 font-size: inherit;
@@ -55,11 +55,11 @@
                 touch-action: manipulation;
             }
 
-            .slider button:disabled {
+            .parameter button:disabled {
                 color: #003b00;
             }
 
-            .slider > div {
+            .parameter .container {
                 line-height: 0;
                 border: 0.35vh solid #7bff00;
                 border-width: 0.35vh 0;
@@ -69,14 +69,8 @@
                 padding: 0.7vh;
             }
 
-            .slider > div > div {
+            .parameter .bar {
                 height: 100%;
-            }
-
-            input {
-                width: 50vw;
-                height: 5vh;
-                margin: 0;
             }
         </style>
     </head>
@@ -87,18 +81,18 @@
         </div>
         <div id="sliders">
             <template>
-                <div class="slider">
+                <div class="parameter">
                     <label>A</label>
-                    <button id="decrement">-</button>
-                    <div>
-                        <input type="range" min="0" max="127" disabled hidden />
-                        <div></div>
+                    <button class="decrement">-</button>
+                    <div class="container">
+                        <div class="bar"></div>
                     </div>
-                    <button id="increment">+</button>
+                    <button class="increment">+</button>
                 </div>
             </template>
         </div>
         <script type="text/javascript">
+            const MAX = 127
             const COLORS = [[255, 51, 102], [255, 102, 51], [255, 204, 51], [51, 255, 102], [51, 255, 204], [51, 153, 255], [102, 51, 255], [204, 51, 255]]
             const status = document.getElementById("status").childNodes[0]
             const params = []
@@ -108,33 +102,32 @@
                 const template = document.querySelector("template")
                 for (const [param, [name, value]] of data.entries()) {
                     const clone = template.content.cloneNode(true)
-                    const slider = clone.querySelector("input")
-                    const container = slider.parentNode.querySelector("div")
-                    const decrement = clone.querySelector("#decrement")
-                    const increment = clone.querySelector("#increment")
+                    const container = clone.querySelector(".bar")
+                    const decrement = clone.querySelector(".decrement")
+                    const increment = clone.querySelector(".increment")
                     clone.querySelector("label").textContent = param
                     decrement.onclick = () => change(param, -2)
                     increment.onclick = () => change(param, +2)
-                    params.push({ container, slider, decrement, increment })
+                    params.push({ container, value: 0, decrement, increment })
                     update(param, value)
                     sliders.appendChild(clone)
                 }
             }
 
-            function change(param, delta) {
+            function change(index, delta) {
                 // Show change locally (rather than waiting for server update) to give immediate feedback.
-                const value = Math.max(0, Math.min(+params[param].slider.value + delta, 127))
-                delta = value - +params[param].slider.value
-                update(param, value)
-                ws.send(JSON.stringify({ [param]: delta }))
+                const value = Math.max(0, Math.min(params[index].value + delta, MAX))
+                delta = value - params[index].value
+                update(index, value)
+                ws.send(JSON.stringify({ [index]: delta }))
             }
 
-            function update(param, value) {
-                const { container, slider, decrement, increment } = params[param]
-                slider.value = value
-                container.style.cssText = `background-color: rgba(${COLORS[param]}, ${0.1 + 0.9*value/127}); width: ${100 * value/127}%`
-                decrement.disabled = (value === +slider.min)
-                increment.disabled = (value === +slider.max)
+            function update(index, value) {
+                const param = params[index]
+                param.value = value
+                param.container.style.cssText = `background-color: rgba(${COLORS[index]}, ${0.15 + 0.85*value/MAX}); width: ${100 * value/MAX}%`
+                param.decrement.disabled = (value === 0)
+                param.increment.disabled = (value === MAX)
             }
 
             const ws = new WebSocket("ws://" + window.location.host + "/ws")

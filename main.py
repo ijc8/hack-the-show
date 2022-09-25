@@ -22,7 +22,7 @@ PARAMS = list("ABCDEFGH")
 MIN_VALUE = 0
 MAX_VALUE = 127
 
-state = [0 for p in PARAMS]
+state = [0 for _ in PARAMS]
 update = asyncio.Event()
 
 @app.websocket("/ws")
