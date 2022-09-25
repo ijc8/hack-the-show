@@ -114,8 +114,8 @@
 
             function formatState(state) {
                 let s = ""
-                for (const [key, value] of Object.entries(state)) {
-                    s += `${key}: ${(value + "").padStart(3)} `
+                for (const value of state) {
+                    s += `${(value + "").padStart(3)}, `
                 }
                 return s
             }
@@ -142,10 +142,10 @@
                     el.received.textContent = +el.received.textContent + 1
                     if (localState === null) {
                         // First message.
-                        localState = data
+                        localState = data.map(([_, value]) => value)
                     } else {
-                        for (const [param, value] of Object.entries(data)) {
-                            localState[param] = value
+                        for (const [index, value] of data) {
+                            localState[index] = value
                         }
                     }
                     el.state.textContent = formatState(localState)
@@ -156,41 +156,6 @@
                 }
 
                 return { ws, ...el }
-            }
-
-            function setup(data) {
-                console.log(data)
-                const sliders = document.getElementById("sliders")
-                const template = document.querySelector("template")
-                for (const [param, value] of Object.entries(data)) {
-                    console.log("hey", param, value)
-                    const clone = template.content.cloneNode(true)
-                    const slider = clone.querySelector("input")
-                    const decrement = clone.querySelector("#decrement")
-                    const increment = clone.querySelector("#increment")
-                    clone.querySelector("label").textContent = param
-                    decrement.onclick = () => change(param, -2)
-                    increment.onclick = () => change(param, +2)
-                    params[param] = { slider, decrement, increment }
-                    update(param, value)
-                    sliders.appendChild(clone)
-                }
-            }
-
-            function change(param, delta) {
-                // Show change locally (rather than waiting for server update) to give immediate feedback.
-                const value = Math.max(0, Math.min(+params[param].slider.value + delta, 127))
-                delta = value - +params[param].slider.value
-                update(param, value)
-                ws.send(JSON.stringify({ param, delta }))
-            }
-
-            function update(param, value) {
-                console.log("update:", param, value)
-                const { slider, decrement, increment } = params[param]
-                slider.value = value
-                decrement.disabled = (value === +slider.min)
-                increment.disabled = (value === +slider.max)
             }
         </script>
     </body>

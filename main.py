@@ -58,6 +58,7 @@ async def websocket(request, ws):
                     # Log the interaction.
                     json.dump({"time": t, "mode_time": t - last_mode_switch, "mode": mode, "ip": request.ip, "param": param, "delta": delta}, log)
                     log.write("\n")
+                    log.flush()
                     # Clients update their local state immediately:
                     client_state[param] += delta
                 # Signal to all coroutines that they should send updates to their clients.
