@@ -1,6 +1,8 @@
 import asyncio
 import json
 import threading
+import time
+import os
 
 import mido
 from sanic import Sanic
@@ -10,10 +12,13 @@ input = mido.open_input("HackTheShow", virtual=True)
 output = mido.open_output("HackTheShow", virtual=True)
 
 mode = 0
+last_mode_switch = time.time()
 
 def process_midi():
+    global last_mode_switch
     for message in input:
         if message.is_cc() and 1 <= message.control <= 3:
+            last_mode_switch = time.time()
             mode = message.control - 1
             print("Mode change:", mode)
 
@@ -41,6 +46,7 @@ async def websocket(request, ws):
         done, _ = await asyncio.wait({recv, updated}, return_when=asyncio.FIRST_COMPLETED)
         for task in done:
             if task is recv:
+                t = time.time()
                 # Uncomment to see what we got from the client:
                 message = json.loads(task.result())
                 # print(f"Got message from {request.ip}: {message}")
@@ -49,6 +55,9 @@ async def websocket(request, ws):
                     param = int(param)
                     state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
                     output.send(mido.Message(type='control_change', channel=11 + mode, control=param + 1, value=state[param]))
+                    # Log the interaction.
+                    json.dump({"time": t, "mode_time": t - last_mode_switch, "mode": mode, "ip": request.ip, "param": param, "delta": delta}, log)
+                    log.write("\n")
                     # Clients update their local state immediately:
                     client_state[param] += delta
                 # Signal to all coroutines that they should send updates to their clients.
@@ -69,6 +78,8 @@ app.static("/", "index.html")
 app.static("/test", "test.html")
 
 if __name__ == "__main__":
-    t = threading.Thread(target=process_midi, daemon=True)
-    t.start()
-    app.run(host="0.0.0.0", port=8000)
+    os.makedirs("log", exist_ok=True)
+    with open(f"log/{time.strftime('%Y_%m_%d-%H_%M_%S')}.jsonl", "w") as log:
+        t = threading.Thread(target=process_midi, daemon=True)
+        t.start()
+        app.run(host="0.0.0.0", port=8000)

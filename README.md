@@ -19,3 +19,5 @@ The server creates two virtual MIDI devices: an input and an output named "HackT
 Whenever anyone changes a slider, the server sends a CC message to the output on channel 11-13 (depending on the mode) for control 1-8 (depending on the slider) with the new slider value.
 
 When the server receives a CC message for control 1-3, it changes the mode accordingly.
+
+Logs are saved as streams of JSON data (the JSON Lines format) under `log/`.
