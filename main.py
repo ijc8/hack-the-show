@@ -15,7 +15,7 @@ mode = 0
 last_mode_switch = time.time()
 
 def process_midi():
-    global last_mode_switch
+    global mode, last_mode_switch
     for message in input:
         if message.is_cc() and 1 <= message.control <= 3:
             last_mode_switch = time.time()
@@ -54,7 +54,7 @@ async def websocket(request, ws):
                 for param, delta in message.items():
                     param = int(param)
                     state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
-                    output.send(mido.Message(type='control_change', channel=11 + mode, control=param + 1, value=state[param]))
+                    output.send(mido.Message(type='control_change', channel=10 + mode, control=param + 1, value=state[param]))
                     # Log the interaction.
                     json.dump({"time": t, "mode_time": t - last_mode_switch, "mode": mode, "ip": request.ip, "param": param, "delta": delta}, log)
                     log.write("\n")
