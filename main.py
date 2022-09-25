@@ -22,17 +22,17 @@ PARAMS = list("ABCDEFGH")
 MIN_VALUE = 0
 MAX_VALUE = 127
 
-state = {p: 0 for p in PARAMS}
+state = [0 for p in PARAMS]
 update = asyncio.Event()
 
 @app.websocket("/ws")
 async def websocket(request, ws):
     # A coroutine is spawned for each connected client.
     global state
-    client_state = state.copy()
+    client_state = state[:]
     print("New websocket connection from", request.ip)
     # New connection: send the current state.
-    await ws.send(json.dumps(state))
+    await ws.send(json.dumps(list(zip(PARAMS, state))))
     recv = asyncio.create_task(ws.recv())
     updated = asyncio.create_task(update.wait())
     while True:
@@ -46,9 +46,9 @@ async def websocket(request, ws):
                 # print(f"Got message from {request.ip}: {message}")
                 # Got a message from the client; update the state.
                 for param, delta in message.items():
+                    param = int(param)
                     state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
-                    # TODO: Use the index directly, rather than the parameter name.
-                    output.send(mido.Message(type='control_change', channel=11 + mode, control=PARAMS.index(param) + 1, value=state[param]))
+                    output.send(mido.Message(type='control_change', channel=11 + mode, control=param + 1, value=state[param]))
                     # Clients update their local state immediately:
                     client_state[param] += delta
                 # Signal to all coroutines that they should send updates to their clients.
@@ -58,10 +58,10 @@ async def websocket(request, ws):
             elif task is updated:
                 # State updated.
                 # Compute the diff with the client's local state, and send the necessary updates.
-                diff = {k: v for k, v in state.items() if v != client_state[k]}
+                diff = [[i, v] for i, v in enumerate(state) if v != client_state[i]]
                 # Don't send a message if nothing needs to be updated.  
                 if diff:
-                    client_state.update(state)
+                    client_state[:] = state
                     await ws.send(json.dumps(diff))
                 updated = asyncio.create_task(update.wait())
 
