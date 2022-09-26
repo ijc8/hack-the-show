@@ -1,6 +1,5 @@
 import asyncio
 import json
-import threading
 import time
 import os
 
@@ -14,9 +13,15 @@ output = mido.open_output("HackTheShow", virtual=True)
 mode = 0
 last_mode_switch = time.time()
 
-def process_midi():
+async def process_midi():
     global mode, last_mode_switch
-    for message in input:
+    loop = asyncio.get_event_loop()
+    queue = asyncio.Queue()
+    def callback(message):
+        loop.call_soon_threadsafe(queue.put_nowait, message)
+    input.callback = callback
+    while True:
+        message = await queue.get()
         if message.is_cc() and 1 <= message.control <= 3:
             last_mode_switch = time.time()
             mode = message.control - 1
@@ -37,7 +42,10 @@ async def websocket(request, ws):
     client_state = state[:]
     print("New websocket connection from", request.ip)
     # New connection: send the current state.
-    await ws.send(json.dumps(list(zip(PARAMS, state))))
+    await ws.send(json.dumps({
+        "mode": mode,
+        "params": list(zip(PARAMS, state)),
+    }))
     recv = asyncio.create_task(ws.recv())
     updated = asyncio.create_task(update.wait())
     while True:
@@ -81,6 +89,5 @@ app.static("/test", "test.html")
 if __name__ == "__main__":
     os.makedirs("log", exist_ok=True)
     with open(f"log/{time.strftime('%Y_%m_%d-%H_%M_%S')}.jsonl", "w") as log:
-        t = threading.Thread(target=process_midi, daemon=True)
-        t.start()
+        app.add_task(process_midi)
         app.run(host="0.0.0.0", port=8000)

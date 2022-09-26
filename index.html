@@ -18,16 +18,21 @@
                 margin: auto;
                 width: max-content;
             }
+            #status-line {
+                display: flex;
+                justify-content: space-between;
+            }
             h1 {
                 font-size: 8vh;
                 margin: 0;
             }
-
             h2 {
                 font-size: 3vh;
                 margin: 0;
             }
-
+            .inactive {
+                color: #005f0b;
+            }
             .parameter {
                 margin: 4vh;
                 font-size: 4vh;
@@ -35,11 +40,9 @@
                 align-items: center;
                 justify-content: center;
             }
-
             .parameter label {
                 margin-right: 1em;
             }
-
             .parameter button {
                 width: 5vh;
                 height: 5vh;
@@ -54,11 +57,9 @@
                 justify-content: center;
                 touch-action: manipulation;
             }
-
             .parameter button:disabled {
                 color: #003b00;
             }
-
             .parameter .container {
                 line-height: 0;
                 border: 0.35vh solid #7bff00;
@@ -68,15 +69,12 @@
                 width: 50vw;
                 padding: 0.7vh;
             }
-
             .parameter .bar {
                 height: 100%;
             }
-
             .blink {
                 animation: blinker 1.2s step-start infinite;
             }
-
             @keyframes blinker {
                 50% {
                     opacity: 0;
@@ -87,7 +85,10 @@
     <body>
         <div id="banner">
             <h1>HACK THE SHOW</h1>
-            <h2>&gt; <span id="status">Connecting...</span><span class="blink">_</span></h2>
+            <div id="status-line">
+                <h2>&gt; <span id="status">Connecting...</span><span class="blink">_</span></h2>
+                <h2>LEVEL <span id="levels"><span>1</span> <span class="inactive">2</span> <span class="inactive">3</span></span></h2>
+            </div>
         </div>
         <div id="sliders">
             <template>
@@ -106,6 +107,17 @@
             const COLORS = [[255, 51, 102], [255, 102, 51], [255, 204, 51], [51, 255, 102], [51, 255, 204], [51, 153, 255], [102, 51, 255], [204, 51, 255]]
             const status = document.getElementById("status").childNodes[0]
             const params = []
+
+            function setMode(mode) {
+                levels = document.querySelector("#levels").children
+                for (const [level, el] of [...levels].entries()) {
+                    if (level === mode) {
+                        el.classList.remove("inactive")
+                    } else {
+                        el.classList.add("inactive")
+                    }
+                }
+            }
 
             function change(index, delta) {
                 // Show change locally (rather than waiting for server update) to give immediate feedback.
@@ -136,7 +148,9 @@
 
                 ws.onmessage = ({ data }) => {
                     // First message:
-                    for (const [index, [name, value]] of JSON.parse(data).entries()) {
+                    const { mode, params } = JSON.parse(data)
+                    setMode(mode)
+                    for (const [index, [name, value]] of params.entries()) {
                         update(index, value)
                     }
                     // Subsequent messages:
