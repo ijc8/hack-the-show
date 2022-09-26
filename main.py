@@ -83,15 +83,16 @@ async def websocket(request, ws):
                 recv = asyncio.create_task(ws.recv())
             elif task is updated:
                 # State updated.
+                # Send mode if it changed.
+                if mode != client_mode:
+                    client_mode = mode
+                    await ws.send(json.dumps(mode))
                 # Compute the diff with the client's local state, and send the necessary updates.
                 diff = [[i, v] for i, v in enumerate(state) if v != client_state[i]]
                 # Don't send a message if nothing needs to be updated.  
                 if diff:
                     client_state[:] = state
                     await ws.send(json.dumps(diff))
-                if mode != client_mode:
-                    client_mode = mode
-                    await ws.send(json.dumps(mode))
                 updated = asyncio.create_task(update.wait())
 
 app.static("/", "index.html")

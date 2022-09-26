@@ -45,9 +45,6 @@
                 align-items: center;
                 justify-content: center;
             }
-            .parameter label {
-                margin-right: 1em;
-            }
             .parameter button {
                 width: 5vh;
                 height: 5vh;
@@ -65,17 +62,22 @@
             .parameter button:disabled {
                 color: #003b00;
             }
-            .parameter .container {
+            .container {
+                position: relative;
                 line-height: 0;
                 border: 0.35vh solid #7bff00;
                 border-width: 0.35vh 0;
                 box-sizing: border-box;
                 height: 5vh;
                 width: 50vw;
-                padding: 0.7vh;
             }
-            .parameter .bar {
+            .bar {
+                width: 100%;
                 height: 100%;
+                position: absolute;
+                bottom: 0;
+                border: 0.7vh solid black;
+                box-sizing: border-box;
             }
             .blink {
                 animation: blinker 1.2s step-start infinite;
@@ -87,6 +89,40 @@
             }
             .hidden {
                 display: none;
+            }
+            /* Special tweaks for third mode */
+            #sliders.mode-2 {
+                position: relative;
+                top: 4vh;
+                left: 50%;
+                translate: calc(-25vw - 14vh);
+            }
+            #sliders.mode-2 .parameter {
+                position: absolute;
+                margin: 0;
+            }
+            #sliders.mode-2 .container {
+                height: 50vw;
+                border: none;
+            }
+            #sliders.mode-2 .parameter:nth-child(2) {
+                top: 5vh;
+            }
+            #sliders.mode-2 .parameter:nth-child(2) button {
+                height: 50vw;
+            }
+            #sliders.mode-2 .parameter:nth-child(3) {
+                flex-direction: column-reverse;
+                margin-left: 14vh;
+            }
+            #sliders.mode-2 .parameter:nth-child(3) .container {
+                border-width: 0 0.35vh;
+            }
+            #sliders.mode-2 .parameter:nth-child(3) button {
+                width: 50vw;
+            }
+            #sliders.mode-2 .parameter:nth-child(3) .bar {
+                mix-blend-mode: screen;
             }
         </style>
     </head>
@@ -126,8 +162,10 @@
 
             const status = document.getElementById("status").childNodes[0]
             const params = []
+            let mode = 0
 
-            function setMode(mode) {
+            function setMode(_mode) {
+                mode = _mode
                 levels = document.querySelector("#levels").children
                 for (const [level, el] of [...levels].entries()) {
                     if (level === mode) {
@@ -137,7 +175,8 @@
                     }
                 }
 
-                console.log(mode, MODES[mode])
+                sliders.classList.remove(...sliders.classList)
+                sliders.classList.add(`mode-${mode}`)
                 for (const [i, param] of params.entries()) {
                     if (i < MODES[mode].sliders) {
                         param.label.textContent = MODES[mode].symbols[i]
@@ -159,7 +198,8 @@
             function update(index, value) {
                 const param = params[index]
                 param.value = value
-                param.bar.style.cssText = `background-color: rgba(${COLORS[index]}, ${0.15 + 0.85*value/MAX}); width: ${100 * value/MAX}%`
+                direction = (mode === 2 && index === 1) ? "height" : "width"
+                param.bar.style.cssText = `background-color: rgba(${COLORS[index]}, ${0.15 + 0.85*value/MAX}); ${direction}: ${100 * value/MAX}%`
                 param.decrement.disabled = (value === 0)
                 param.increment.disabled = (value === MAX)
             }
