@@ -27,6 +27,8 @@ async def process_midi():
             mode = message.control - 1
             print("Mode change:", mode)
             output.send(mido.Message(type='note_on', channel=13))
+            # TODO: Reset parameter values, send new values.
+            # 0 for modes 1 and 2, 63 for mode 3.
             update.set()
 
 # TODO: Replace with actual parameters.
@@ -47,6 +49,7 @@ async def websocket(request, ws):
     await ws.send(json.dumps({
         "mode": mode,
         "params": list(zip(PARAMS, state)),
+        "id": request.ip.split(".")[-1],
     }))
     recv = asyncio.create_task(ws.recv())
     updated = asyncio.create_task(update.wait())

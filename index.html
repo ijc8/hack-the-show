@@ -177,7 +177,8 @@
 
                 ws.onmessage = ({ data }) => {
                     // First message:
-                    const { mode, params } = JSON.parse(data)
+                    const { mode, params, id } = JSON.parse(data)
+                    status.nodeValue = `User ${id} connected.`
                     setMode(mode)
                     for (const [index, [name, value]] of params.entries()) {
                         update(index, value)
