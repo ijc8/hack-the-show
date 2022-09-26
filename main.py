@@ -26,6 +26,7 @@ async def process_midi():
             last_mode_switch = time.time()
             mode = message.control - 1
             print("Mode change:", mode)
+            output.send(mido.Message(type='note_on', channel=13))
             update.set()
 
 # TODO: Replace with actual parameters.

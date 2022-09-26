@@ -30,6 +30,11 @@
                 font-size: 3vh;
                 margin: 0;
             }
+            label {
+                width: 9vh;
+                height: 5vh;
+                word-wrap: normal;
+            }
             .inactive {
                 color: #005f0b;
             }
@@ -80,6 +85,9 @@
                     opacity: 0;
                 }
             }
+            .hidden {
+                display: none;
+            }
         </style>
     </head>
     <body>
@@ -105,6 +113,17 @@
         <script type="text/javascript">
             const MAX = 127
             const COLORS = [[255, 51, 102], [255, 102, 51], [255, 204, 51], [51, 255, 102], [51, 255, 204], [51, 153, 255], [102, 51, 255], [204, 51, 255]]
+            const MODES = [{
+                sliders: 8,
+                symbols: ["☄", "⸝⸝⸝⸝", "♫", "𓏢", "༄", "𓅪", "〰", "𓍼"],
+            }, {
+                sliders: 4,
+                symbols: ["⧩1", "⧩2", "⧩3", "⧩4"],
+            }, {
+                sliders: 2,
+                symbols: ["o/∞", "ᗐ/ᗑ"],
+            }]
+
             const status = document.getElementById("status").childNodes[0]
             const params = []
 
@@ -115,6 +134,16 @@
                         el.classList.remove("inactive")
                     } else {
                         el.classList.add("inactive")
+                    }
+                }
+
+                console.log(mode, MODES[mode])
+                for (const [i, param] of params.entries()) {
+                    if (i < MODES[mode].sliders) {
+                        param.label.textContent = MODES[mode].symbols[i]
+                        param.container.classList.remove("hidden")
+                    } else {
+                        param.container.classList.add("hidden")
                     }
                 }
             }
@@ -179,13 +208,15 @@
             const template = document.querySelector("template")
             for (let index = 0; index < 8; index++) {
                 const clone = template.content.cloneNode(true)
+                const container = clone.querySelector(".parameter")
                 const bar = clone.querySelector(".bar")
                 const decrement = clone.querySelector(".decrement")
                 const increment = clone.querySelector(".increment")
-                clone.querySelector("label").textContent = index
+                const label = clone.querySelector("label")
+                label.textContent = MODES[0].symbols[index]
                 decrement.onclick = () => change(index, -2)
                 increment.onclick = () => change(index, +2)
-                params.push({ bar, value: 0, decrement, increment })
+                params.push({ container, bar, value: 0, decrement, increment, label })
                 sliders.appendChild(clone)
             }
 
