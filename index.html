@@ -156,8 +156,12 @@
                     // Subsequent messages:
                     ws.onmessage = ({ data }) => {
                         data = JSON.parse(data)
-                        for (const [index, value] of data) {
-                            update(index, value)
+                        if (Array.isArray(data)) {
+                            for (const [index, value] of data) {
+                                update(index, value)
+                            }
+                        } else {
+                            setMode(data)
                         }
                     }
                 }

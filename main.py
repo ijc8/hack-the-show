@@ -26,6 +26,7 @@ async def process_midi():
             last_mode_switch = time.time()
             mode = message.control - 1
             print("Mode change:", mode)
+            update.set()
 
 # TODO: Replace with actual parameters.
 PARAMS = list("ABCDEFGH")
@@ -38,8 +39,8 @@ update = asyncio.Event()
 @app.websocket("/ws")
 async def websocket(request, ws):
     # A coroutine is spawned for each connected client.
-    global state
     client_state = state[:]
+    client_mode = mode
     print("New websocket connection from", request.ip)
     # New connection: send the current state.
     await ws.send(json.dumps({
@@ -81,6 +82,9 @@ async def websocket(request, ws):
                 if diff:
                     client_state[:] = state
                     await ws.send(json.dumps(diff))
+                if mode != client_mode:
+                    client_mode = mode
+                    await ws.send(json.dumps(mode))
                 updated = asyncio.create_task(update.wait())
 
 app.static("/", "index.html")
