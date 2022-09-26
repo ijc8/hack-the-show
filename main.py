@@ -10,6 +10,7 @@ app = Sanic("WebsocketExample")
 input = mido.open_input("HackTheShow", virtual=True)
 output = mido.open_output("HackTheShow", virtual=True)
 
+MODE_DEFAULTS = [0, 0, 63]
 mode = 0
 last_mode_switch = time.time()
 
@@ -27,8 +28,10 @@ async def process_midi():
             mode = message.control - 1
             print("Mode change:", mode)
             output.send(mido.Message(type='note_on', channel=13))
-            # TODO: Reset parameter values, send new values.
-            # 0 for modes 1 and 2, 63 for mode 3.
+            # Reset parameter values.
+            for param in range(len(state)):
+                state[param] = MODE_DEFAULTS[mode]
+                output.send(mido.Message(type='control_change', channel=10 + mode, control=param + 1, value=state[param]))
             update.set()
 
 # TODO: Replace with actual parameters.
