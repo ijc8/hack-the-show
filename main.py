@@ -23,15 +23,16 @@ async def process_midi():
     input.callback = callback
     while True:
         message = await queue.get()
-        if message.is_cc() and 1 <= message.control <= 3:
+        if message.is_cc() and 1 <= message.control <= 4:
             last_mode_switch = time.time()
             mode = message.control - 1
             print("Mode change:", mode)
-            output.send(mido.Message(type='note_on', channel=13))
-            # Reset parameter values.
-            for param in range(len(state)):
-                state[param] = MODE_DEFAULTS[mode]
-                output.send(mido.Message(type='control_change', channel=10 + mode, control=param + 1, value=state[param]))
+            if mode:
+                output.send(mido.Message(type='note_on', channel=13))
+                # Reset parameter values.
+                for param in range(len(state)):
+                    state[param] = MODE_DEFAULTS[mode - 1]
+                    output.send(mido.Message(type='control_change', channel=9 + mode, control=param + 1, value=state[param]))
             update.set()
 
 # TODO: Replace with actual parameters.
@@ -70,7 +71,7 @@ async def websocket(request, ws):
                 for param, delta in message.items():
                     param = int(param)
                     state[param] = max(MIN_VALUE, min(state[param] + delta, MAX_VALUE))
-                    output.send(mido.Message(type='control_change', channel=10 + mode, control=param + 1, value=state[param]))
+                    output.send(mido.Message(type='control_change', channel=9 + mode, control=param + 1, value=state[param]))
                     # Log the interaction.
                     json.dump({"time": t, "mode_time": t - last_mode_switch, "mode": mode, "ip": request.ip, "param": param, "delta": delta}, log)
                     log.write("\n")

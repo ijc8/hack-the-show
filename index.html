@@ -30,6 +30,10 @@
                 font-size: 3vh;
                 margin: 0;
             }
+            h3 {
+                margin-top: 10vh;
+                font-size: 5vh;
+            }
             label {
                 width: 8vh;
                 height: 5vh;
@@ -90,38 +94,38 @@
             .hidden {
                 display: none;
             }
-            /* Special tweaks for third mode */
-            #sliders.mode-2 {
+            /* Special tweaks for mode 3 */
+            #sliders.mode-3 {
                 position: relative;
                 top: 4vh;
                 left: 50%;
                 translate: calc(-25vw - 13vh);
             }
-            #sliders.mode-2 .parameter {
+            #sliders.mode-3 .parameter {
                 position: absolute;
                 margin: 0;
             }
-            #sliders.mode-2 .container {
+            #sliders.mode-3 .container {
                 height: 50vw;
                 border: none;
             }
-            #sliders.mode-2 .parameter:nth-child(2) {
+            #sliders.mode-3 .parameter:nth-child(2) {
                 top: 10vh;
             }
-            #sliders.mode-2 .parameter:nth-child(2) button {
+            #sliders.mode-3 .parameter:nth-child(2) button {
                 height: 50vw;
             }
-            #sliders.mode-2 .parameter:nth-child(3) {
+            #sliders.mode-3 .parameter:nth-child(3) {
                 flex-direction: column-reverse;
                 margin-left: 13vh;
             }
-            #sliders.mode-2 .parameter:nth-child(3) .container {
+            #sliders.mode-3 .parameter:nth-child(3) .container {
                 border-width: 0 0.35vh;
             }
-            #sliders.mode-2 .parameter:nth-child(3) button {
+            #sliders.mode-3 .parameter:nth-child(3) button {
                 width: 50vw;
             }
-            #sliders.mode-2 .parameter:nth-child(3) .bar {
+            #sliders.mode-3 .parameter:nth-child(3) .bar {
                 mix-blend-mode: screen;
             }
         </style>
@@ -131,10 +135,11 @@
             <h1>HACK THE SHOW</h1>
             <div id="status-line">
                 <h2>&gt; <span id="status">Connecting...</span><span class="blink">_</span></h2>
-                <h2>LEVEL <span id="levels"><span>1</span> <span class="inactive">2</span> <span class="inactive">3</span></span></h2>
+                <h2>LEVEL <span id="levels"><span class="inactive">1</span> <span class="inactive">2</span> <span class="inactive">3</span></span></h2>
             </div>
         </div>
-        <div id="sliders">
+        <h3>Nothing to see here.</h3>
+        <div id="sliders" class="hidden">
             <template>
                 <div class="parameter">
                     <label></label>
@@ -151,6 +156,9 @@
             const MAX = 127
             const COLORS = [[255, 51, 102], [255, 102, 51], [255, 204, 51], [51, 255, 102], [51, 255, 204], [51, 153, 255], [102, 51, 255], [204, 51, 255]]
             const MODES = [{
+                sliders: 0,
+                symbols: [],
+            }, {
                 sliders: 8,
                 symbols: ["☄", "⸝⸝⸝", "♫", "𓏢", "༄", "𓅪", "〰", "𓍼"],
             }, {
@@ -162,21 +170,31 @@
             }]
 
             const status = document.getElementById("status").childNodes[0]
+            const inactiveText = document.querySelector("h3")
             const params = []
             let mode = 0
 
             function setMode(_mode) {
                 mode = _mode
+                sliders.classList.remove(...sliders.classList)
+                
+                if (mode) {
+                    inactiveText.classList.add("hidden")
+                    sliders.classList.remove("hidden")
+                } else {
+                    inactiveText.classList.remove("hidden")
+                    sliders.classList.add("hidden")
+                }
+
                 levels = document.querySelector("#levels").children
                 for (const [level, el] of [...levels].entries()) {
-                    if (level === mode) {
+                    if (level === mode - 1) {
                         el.classList.remove("inactive")
                     } else {
                         el.classList.add("inactive")
                     }
                 }
 
-                sliders.classList.remove(...sliders.classList)
                 sliders.classList.add(`mode-${mode}`)
                 for (const [i, param] of params.entries()) {
                     if (i < MODES[mode].sliders) {
@@ -206,7 +224,7 @@
             function update(index, value) {
                 const param = params[index]
                 param.value = value
-                direction = (mode === 2 && index === 1) ? "height" : "width"
+                direction = (mode === 3 && index === 1) ? "height" : "width"
                 param.bar.style.cssText = `background-color: rgba(${COLORS[index]}, ${0.15 + 0.85*value/MAX}); ${direction}: ${100 * value/MAX}%`
                 param.decrement.disabled = (value === 0)
                 param.increment.disabled = (value === MAX)
